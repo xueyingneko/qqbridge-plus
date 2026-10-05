@@ -12,12 +12,17 @@
   },
   "files": [
     "lib",
+    "scripts",
     "cordis.patch.yml",
     "README.md",
+    "README.en.md",
+    "LICENSE",
     "!lib/last-apply-config.json"
   ],
   "scripts": {
-    "test": "node test/plugin.test.mjs && node test/feature-command.test.mjs"
+    "test": "node test/plugin.test.mjs && node test/feature-command.test.mjs",
+    "install:dsh": "node scripts/install.mjs",
+    "install:dsh:dry": "node scripts/install.mjs --dry-run"
   },
   "keywords": [
     "deepseek-harness",
@@ -35,6 +40,14 @@
     "holiday"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xueyingneko/qqbridge-plus.git"
+  },
+  "homepage": "https://github.com/xueyingneko/qqbridge-plus#readme",
+  "bugs": {
+    "url": "https://github.com/xueyingneko/qqbridge-plus/issues"
+  },
   "devDependencies": {
     "@deepseek-ai/schemastery": "^3.18.1"
   },
