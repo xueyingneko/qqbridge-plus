@@ -1,0 +1,19 @@
+# dsh-plugin-qqbridge-plus - bundle patch layer.
+#
+# Profile-bundle patches compose over an EMPTY entry list, so every patch here is an
+# `insert` appending composition rows. This row registers the `qqbridge` model tool
+# (and, when personaSection is on, the qq-bridge operations prompt section).
+#
+# NOTE: comments are intentionally ASCII-only. Keeping config files free of non-ASCII
+# avoids any re-encoding ambiguity between the editing tools and the loader.
+#
+# config.bridgeDir defaults to the qq-bridge checkout; change it here or in the
+# plugin's own config when moving machines.
+- insert:
+    - id: qqbridge-plus
+      name: 'dsh-plugin-qqbridge-plus'
+      config:
+        bridgeDir: 'F:/router/qq-bridge'
+        consoleBase: 'http://127.0.0.1:3100'
+        personaSection: true
+        sectionOrder: 7
