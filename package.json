@@ -1,0 +1,60 @@
+{
+  "name": "dsh-plugin-qqbridge-plus",
+  "version": "1.0.0",
+  "description": "QQbridge plus — DeepSeek Harness 插件：把 qq-bridge 的运维能力搬进原生工具面（余额与自动关机、推理档位按 DeepSeek 计费峰谷自动切换、节假日表覆盖检查与自动维护、开机/关机提示词、#余额/#关机 管理命令、#功能 开关、#帮助）。判定逻辑直接复用 qq-bridge 的纯模块，不重复实现。",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./bridge": "./lib/bridge.js",
+    "./tools": "./lib/tools.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "scripts",
+    "test",
+    "cordis.patch.yml",
+    "README.md",
+    "README.en.md",
+    "LICENSE",
+    "!lib/last-apply-config.json"
+  ],
+  "scripts": {
+    "test": "node test/plugin.test.mjs && node test/feature-command.test.mjs",
+    "install:dsh": "node scripts/install.mjs",
+    "install:dsh:dry": "node scripts/install.mjs --dry-run"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "cordis",
+    "plugin",
+    "bundle",
+    "qq",
+    "qq-bridge",
+    "snowluma",
+    "onebot",
+    "balance",
+    "reasoning-effort",
+    "holiday"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xueyingneko/qqbridge-plus.git"
+  },
+  "homepage": "https://github.com/xueyingneko/qqbridge-plus#readme",
+  "bugs": {
+    "url": "https://github.com/xueyingneko/qqbridge-plus/issues"
+  },
+  "devDependencies": {
+    "@deepseek-ai/schemastery": "^3.18.1"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

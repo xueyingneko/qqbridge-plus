@@ -1,0 +1,94 @@
+MIT License
+
+Copyright (c) 2026 xueyingneko (this plugin, dsh-plugin-qqbridge-plus)
+Copyright (c) 2026 Derpyu520 and qq-bridge / QSH contributors (qq-bridge, the companion project this plugin depends on)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## 第三方组件与合规边界（不是许可证的一部分，但请一并阅读）
+
+本项目（dsh-plugin-qqbridge-plus）采用 MIT 许可。**它不覆盖下列第三方组件**，这些组件各自
+适用其原始许可，使用前请自行阅读并遵守：
+
+| 组件 | 许可 | 说明 |
+| --- | --- | --- |
+| [qq-bridge](https://github.com/Derpyu520/qq-bridge)（QSH） | MIT | **本插件的配套运行时**。插件直接 `import` 它的纯模块并回调其控制台端点 |
+| [`@deepseek-ai/dsh`](https://github.com/deepseek-ai/deepseek-harness) 及其 `@deepseek-ai/*` 包 | MIT | DeepSeek Harness 本体（插件宿主） |
+| [`@deepseek-ai/schemastery`](https://www.npmjs.com/package/@deepseek-ai/schemastery) | MIT | 配置 schema 校验（仅用于让 DSH 设置页能识别本插件的配置字段） |
+| （间接）`@snowluma/sdk` / `@snowluma/mcp` / SnowLuma 本体 | 见下 | **本仓库不依赖、不包含、不分发它们**；但 qq-bridge 依赖，故一并说明 |
+
+### ⚠️ 关于 SnowLuma 许可的说明（本插件的实际关系）
+
+SnowLuma 采用「源码可见非商业许可」（[LICENSE](https://github.com/SnowLuma/SnowLuma/blob/main/LICENSE)，以中文为准）。
+**本插件的立场是"完全不接触"**，逐条对照如下（工程层面的理解，不是法律意见）：
+
+| 条款 | SnowLuma 的要求 | 本项目的情况 |
+| --- | --- | --- |
+| §2 授权 | 允许为非商业目的使用、运行，以及为自己的非商业使用而修改 | ✅ 不涉及——本插件不 import、不修改、不运行 SnowLuma |
+| §3(d) | 公开发布「修改版或衍生版」须事先书面许可 | ❌ **不适用**：本仓库不含任何 SnowLuma 代码或二进制，也不是它的修改版/衍生版 |
+| §4(a) | 禁止商业使用 | ❌ **不适用**：本项目免费、无任何收费形态 |
+| §4(b) | 不得基于本软件开发、发布或分发另一个项目 | 见下 |
+| EULA §5.4 | 不得并入第三方安装包/镜像、不得自动化部署 | ✅ 本插件**不安装、不复制、不打包、不部署 SnowLuma**，也不程序化启停其进程 |
+
+**关于 §4(b) 的诚实说明**：本插件自身与 SnowLuma 无代码关系，但它**配套 qq-bridge**，
+而 qq-bridge 与这条条款的关系存在两种读法（较宽松：§4(b) 意在堵住"把商用包装成周边项目
+来绕过 §4(a)"；较严格：它是一条不带商业限定语的独立禁止）。**qq-bridge 的 LICENSE 里对此
+有完整讨论并给出结论**——请以那份为准，本插件不另行主张。若你要公开发布整套方案，
+正确的做法仍是**先向 SnowLumaDevs 发一封简短邮件说明用途**（联系方式见其 LICENSE）。
+
+**结论**：本项目的 MIT 许可只覆盖本项目自己的代码，**不对 SnowLuma 授予任何权利，
+也不替使用者承担其许可义务**。使用者需自行取得并遵守其许可。
+
+### 使用风险提示
+
+- SnowLuma 是独立第三方项目，与腾讯公司（Tencent）及 QQ **无任何隶属、合作、授权或背书关系**。
+- 使用非官方协议工具接入第三方平台**可能违反该平台的服务条款并导致账号受限**，风险由使用者自负。
+- 本插件会读取你的**桥接配置**（含令牌，仅在内存中用于鉴权，不落盘、不外发）与**运行状态**。
+  请确保本机环境可信——QQ 侧的管理命令只需管理员 QQ 号即可触发。
+
+### 📡 数据出机清单（本插件自身的行为）
+
+本插件**不引入任何遥测、统计或 phone-home 行为**。它的全部对外通信如下：
+
+| 目的地 | 什么数据 | 默认 | 怎么关 |
+| --- | --- | --- | --- |
+| **本机 qq-bridge 控制台**（`127.0.0.1:3100`） | 读取运行态（模式、余额、会话列表）；读取运行时段位 | 开 | 不配 `consoleBase` 或关掉对应 features |
+| **本机 qq-bridge 目录** | 读 `config.json`、`state/console-token`、`state/*.json` | 开 | 关掉对应 features |
+| **本机 DSH web**（`127.0.0.1:19387`，**仅入站**） | 接受桥接转发来的开关命令 | 开 | 不装配插件，或关掉 `features` |
+| **公网 `www.gov.cn`** | 仅在你显式调用 `holidays fetch=true` 时抓取节假日通知 | **关**（需显式触发） | 不调用该 action |
+
+> 两点值得注意：
+> ① 插件会**读取** `config.json`（其中含 `snowluma.accessToken`），但 `config` action 的输出
+> 对令牌做了**脱敏**，且有测试断言"摘要里不得出现未脱敏令牌"；
+> ② 插件注册的 HTTP 端点（`/qqbridge-plus/features`）是**鉴权**的：仅回环地址、每次请求校验
+> 令牌、拿不到令牌时**不注册端点**（fail-closed）。这个端点能放宽工具面，裸奔不可接受。
+
+### 与 qq-bridge 的版本配套
+
+本插件与 qq-bridge 是**跨仓库硬依赖**关系（直接 import 其纯模块、回调其端点）。
+qq-bridge 启动时会在日志里报出**两边版本**，便于排查不匹配：
+
+```
+[bridge] 版本：qq-bridge 0.2.0
+[bridge]       插件：dsh-plugin-qqbridge-plus 1.0.0
+```
+
+本插件的版本以 `package.json` 的 `version` 为唯一来源；qq-bridge 同理。**同一件事不维护两份**。

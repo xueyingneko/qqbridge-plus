@@ -1,0 +1,59 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # 装上 schemastery 才能 import lib/config-schema.js。
+      # 这是**唯一**的 npm 依赖，见 README「install」一节。
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      # 这两套测试**不依赖 qq-bridge**，可在任意机器上跑。
+      # 另外两套（桥接纯函数 28 项、端到端 10 项）需要 qq-bridge 端在运行，
+      # 因此不在 CI 里跑——写一个必然失败的 CI 比没有 CI 更糟。
+      - name: Tests that need no qq-bridge
+        run: |
+          node test/plugin.test.mjs
+          node test/feature-command.test.mjs
+
+      - name: Syntax check every module
+        run: |
+          status=0
+          while IFS= read -r f; do
+            node --check "$f" || status=1
+          done < <(find lib test -type f \( -name '*.js' -o -name '*.mjs' \))
+          exit $status
+
+      # 版本只能有一个来源：package.json。
+      # 曾在一个模块里硬写版本常量并与 package.json 矛盾 ⇒ 等于没有可信版本号。
+      - name: Version single-source check
+        run: |
+          node -e "
+          const pkg = require('./package.json');
+          if (!/^\d+\.\d+\.\d+$/.test(pkg.version)) {
+            console.error('package.json 的 version 不是三段式：' + pkg.version); process.exit(1);
+          }
+          console.log('version = ' + pkg.version);
+          "
+
+      # lib/last-apply-config.json 是运行期诊断产物，含宿主绝对路径，绝不能进仓库。
+      - name: Ensure no local runtime artifacts are committed
+        run: |
+          status=0
+          for f in lib/last-apply-config.json; do
+            if [ -e "$f" ]; then echo "::error::$f 是运行期产物，不应提交（含本机绝对路径）"; status=1; fi
+          done
+          exit $status

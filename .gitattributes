@@ -1,0 +1,17 @@
+# 换行符与文本规范。
+#
+# 为什么需要这个文件：本仓库在 Windows 上开发，而 git 全局开了 core.autocrlf=true，
+# 默认会把文本文件存成 CRLF。两个后果：
+#   ① install.sh 是 POSIX shell 脚本，CRLF 会让 shebang 失效（在 Linux/macOS 上直接跑不起来）；
+#   ② 每次提交都产生"整文件换行都变了"的假差异，review 时看不到真正的改动。
+# 所以规定：仓库里一律存 LF。Windows 用户 checkout 时仍会按 core.autocrlf 拿到 CRLF，
+# 而 clone 到 Linux/macOS 拿到的是可执行的 LF —— 两边都对。
+* text=auto eol=lf
+
+# 二进制：不做任何转换
+*.tgz binary
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.pdf binary
