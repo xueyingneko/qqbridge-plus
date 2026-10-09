@@ -88,7 +88,7 @@ qq-bridge 启动时会在日志里报出**两边版本**，便于排查不匹配
 
 ```
 [bridge] 版本：qq-bridge 0.2.0
-[bridge]       插件：dsh-plugin-qqbridge-plus 1.0.0
+[bridge]       插件：dsh-plugin-qqbridge-plus 1.1.0
 ```
 
 本插件的版本以 `package.json` 的 `version` 为唯一来源；qq-bridge 同理。**同一件事不维护两份**。

@@ -416,7 +416,7 @@ loader 求值后所有带 volatile 的字段都变成了 `{}`，于是 `sectionO
 
 ```
 [bridge] 版本：qq-bridge 0.2.0
-[bridge]       插件：dsh-plugin-qqbridge-plus 1.0.0
+[bridge]       插件：dsh-plugin-qqbridge-plus 1.1.0
 ```
 
 两边都只以各自 `package.json` 的 `version` 为准，不另外维护一份。

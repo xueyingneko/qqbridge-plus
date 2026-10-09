@@ -344,7 +344,7 @@ The plugin and qq-bridge are a cross-repo dependency. qq-bridge reports both ver
 
 ```
 [bridge] 版本：qq-bridge 0.2.0
-[bridge]       插件：dsh-plugin-qqbridge-plus 1.0.0
+[bridge]       插件：dsh-plugin-qqbridge-plus 1.1.0
 ```
 
 Each side takes its version solely from its own `package.json` `version`, with no second copy.

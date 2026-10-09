@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-qqbridge-plus",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "QQbridge plus — DeepSeek Harness 插件：把 qq-bridge 的运维能力搬进原生工具面（余额与自动关机、推理档位按 DeepSeek 计费峰谷自动切换、节假日表覆盖检查与自动维护、开机/关机提示词、#余额/#关机 管理命令、#功能 开关、#帮助）。判定逻辑直接复用 qq-bridge 的纯模块，不重复实现。",
   "type": "module",
   "main": "lib/index.js",
@@ -14,6 +14,7 @@
     "lib",
     "scripts",
     "test",
+    "docs",
     "cordis.patch.yml",
     "README.md",
     "README.en.md",
