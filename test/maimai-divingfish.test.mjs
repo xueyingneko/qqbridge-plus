@@ -137,8 +137,12 @@ await ok('默认地址与权限范围符合契约，且覆盖实际需要的端�
   assert.match(DEFAULTS.baseUrl, /^https:\/\/maimai\.diving-fish\.com\/api\/maimaidxprober$/);
   assert.match(DEFAULTS.authUrl, /^https:\/\/auth\.diving-fish\.com$/);
   // 权限必须覆盖代码真正调用的端点：
-  //   /query/player   → prober.profile.read（公开查询与汇总资料）
-  //   /player/records → prober.records.read（B50 的逐条成绩）
+  //   /query/player（POST b50:true）→ B50 的权威来源，服务端算好 charts{sd,dx}
+  //     · 公开查询时按 username，不需要令牌 → 对应 prober.profile.read
+  //     · 查自己的成绩时带 bearer 令牌 → 对应 prober.records.read
+  //   注意：**不要**改成 GET /player/records 自己排序算 B50。实测那条路返回扁平
+  //   records 数组（无 charts 字段，渲染器读不到），而且自己重算的 ra 之和
+  //   与官方 rating 对不上（差 129）。详见 divingfish.js userB50 的注释。
   for (const need of ['profile', 'prober.profile.read', 'prober.records.read']) {
     assert.ok(DEFAULTS.scope.split(/\s+/).includes(need), `scope 缺少 ${need}，对应端点会 403`);
   }
