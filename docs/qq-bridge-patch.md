@@ -148,9 +148,50 @@
 | --- | --- | --- |
 | 1 | `sendSegmentsV2`（抽出） | 出图 + 私发投递 |
 | 2 | `sendImageV2`（新增） | 出图 |
-| 3 | `sendReplyWithImage`（新增小助手） | 文本 + 图分两条发 |
+| 3 | `sendReplyWithImage`（新增小助手）+ `stripLocalImageHints` | 文本 + 图分两条发；**不泄漏本机路径** |
 | 4 | `actionReply`（新增） | 转发 `maimai` action |
 | 5 | `maimaiCommand` 分支 + 绑定类强制私聊 | QQ 命令入口 + **安全** |
+
+## 改动五：`actionReply` 从文本里取图片路径 + 发给 QQ 前剥掉本机路径
+
+两件事，都是真踩出来的。
+
+### (a) 图片路径必须从**文本**里取，不能指望结构化字段
+
+插件把出图路径**写在文本里**（`成绩图已生成…：\n<路径>`），而 `/qqbx/action` 端点只回
+`{ ok, text }`。`actionReply` 一开始读的是 `data.imageFile`，那是 **undefined**，
+于是 `sendReplyWithImage` 里 `if (!reply.imageFile) return;` 直接返回——**图生成了却从未发出**。
+
+症状极具误导性：日志里命令成功、`#查分` 的文本正常送达，**但没有任何图片相关的日志**
+（成功和失败都没打），而出图目录里确实有一个新鲜的 PNG。
+
+修法（无需改返回结构）：
+
+```js
+      const body = String(data.text ?? '(无内容)');
+      const pathHit = body.match(/([A-Za-z]:[\\/][^\r\n]*?\.png)/);
+      return { text: body, imageFile: pathHit ? pathHit[1].trim() : null };
+```
+
+加结构化字段要同时改 `runAction` → `/action` 路由 → 桥接三处，为一个路径重构不值得。
+
+### (b) 剥掉本机路径后再发 QQ
+
+路径对 QQ 里的用户没用（桥接已经自动发图了），却会**暴露用户电脑的目录结构**。
+所以加了 `stripLocalImageHints`，只用于发给 QQ 的文本；工具面保留原始文本（模型需要路径）。
+
+⚠️ **这里有个值得记的误伤**：首版判据写成 `/[A-Za-z]:[\\/]/`，它把 URL 里的
+**`https://` 当成了盘符路径**（`s:` + `//`），于是**绑定命令的授权链接整行被删掉**——
+用户拿不到链接，而日志里一切正常。修法是限定盘符为单个字母并加前后视：
+
+```js
+      if (/(?:^|[^A-Za-z0-9])[A-Za-z]:(?![A-Za-z])[\\/]/.test(l)) return false;
+```
+
+**误伤比漏剥更糟**：漏剥只是多露一个路径，误伤会让功能直接不可用且无声。
+所以这段逻辑配了独立的测试套件（`scripts/test-strip-paths.mjs`，13 项），
+其中一半专门测"不该动的一个字都不许动"（https/http 链接、普通句子里的冒号、
+`xxs:/` 这类多字母前缀）。
 
 另有 `src/feature-command.mjs` 的两处：
 
@@ -158,7 +199,7 @@
    `maimaiCommand` 的支持；
 2. **`normalizeCommandText`**（见下节）——这一处是真事故换来的。
 
-## 改动七：`cfg.maimaiCommand` 必须在 cfg 归一化段里显式构造 ⚠️
+## 改动六：`cfg.maimaiCommand` 必须在 cfg 归一化段里显式构造 ⚠️
 
 **这是最容易漏、且漏了以后完全静默的一处。** 只打前面的改动而漏了这里，症状是：
 命令毫无反应、日志里一条线索都没有。
@@ -221,7 +262,7 @@
 
 有了这一行，"配了却没生效"就不再需要猜：**只要 `maimai=(未加载)`，就是这一段漏了**。
 
-## 改动六：归一化命令文本的首尾空白与零宽字符
+## 改动七：归一化命令文本的首尾空白与零宽字符
 
 ### 为什么
 

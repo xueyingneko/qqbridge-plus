@@ -153,6 +153,16 @@ await ok('出图成功时给出可用的绝对路径', async () => {
   assert.ok(m, '输出里应有绝对路径');
   assert.ok(fs.existsSync(m[1]), `路径应真实存在：${m[1]}`);
 });
+await ok('路径必须留在**工具面**文本里（模型要靠它自己发图）', async () => {
+  // 这是一条跨仓库契约：桥接侧会在发给 QQ 前把路径剥掉（见 qq-bridge 的
+  // stripLocalImageHints），但**工具面拿到的必须是原始文本**——否则模型手上
+  // 就没有路径，无法自己把图发出去。
+  // 所以这里断言的是"插件输出里路径必须在"，剥不剥是桥接的事。
+  const t = await actionMaimai({ maimai: CFG_OFF }, { sub: 'b50', username: 'x' }, mkDeps(fakeClient()));
+  assert.match(t, /[A-Za-z]:\\[^\r\n]*\.png/, '工具面文本里必须含绝对路径');
+  // 并且要说明"QQ 侧会自动发图"，免得模型又去手动发一遍
+  assert.match(t, /QQ 命令回复时|自动发送|无需手动处理/, '应说明 QQ 侧会自动发图，避免模型重复发送');
+});
 await ok('出图抛错时查询结果仍然返回（图是附加价值）', async () => {
   const t = await actionMaimai({ maimai: CFG_OFF }, { sub: 'b50', username: 'x' },
     mkDeps(fakeClient(), { renderB50: async () => { throw new Error('渲染炸了'); } }));

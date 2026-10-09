@@ -28,7 +28,8 @@
 
 **DSH 工具面**：`qqbridge` 新增第 10 个 action `maimai`，子操作同上。
 
-**成绩图**：1080 宽 PNG，按内容自适应高度。
+**成绩图**：1080 宽 PNG，按内容自适应高度。桥接会**自动把它发到 QQ**（另起一条消息），
+并且在转发前把文本里的**本机文件路径剥掉**——聊天记录里不会出现你电脑的目录结构。
 
 ## 权限与安全（这部分值得单独读）
 
@@ -180,7 +181,9 @@ of qq-bridge** and works even if the bridge is not installed.
 
 **DSH tool surface**: `qqbridge` gains a 10th action, `maimai`, with the same subcommands.
 
-**Score images**: 1080px wide PNG, height adapts to content.
+**Score images**: 1080px wide PNG, height adapts to content. The bridge **sends it to QQ
+automatically** (as a separate message) and **strips the local file path** from the text before
+forwarding — your machine's directory layout never appears in the chat log.
 
 ## Permissions and safety
 
