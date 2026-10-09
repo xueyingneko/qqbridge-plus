@@ -220,7 +220,7 @@ scripts\install.cmd --dry-run
 
 ## AI 能调什么
 
-一个工具 `qqbridge`，9 个 action：
+一个工具 `qqbridge`，10 个 action：
 
 | action | 作用 |
 | --- | --- |
@@ -232,7 +232,77 @@ scripts\install.cmd --dry-run
 | `commands` | `#余额` `#关机` 触发词与权限口径 |
 | `config` | 桥接配置摘要（令牌已脱敏）；`key="role.balanceAlarm"` 取子段 |
 | `features` | 功能开关：查看，或用 `set`/`enabled` 修改，或 `reset` |
+| `maimai` | 舞萌DX 查分（见下一节） |
 | `firstRun` | 重看首次运行引导 |
+
+---
+
+## 舞萌DX 查分
+
+接入[水鱼查分器](https://diving-fish.com)。这部分**与 qq-bridge 无关**——桥接没装好也能用。
+
+```
+qqbridge  action=maimai, sub=status                    这台机器上查分能不能用
+qqbridge  action=maimai, sub=b50, username=某人        公开查询（对方需自行公开成绩）
+qqbridge  action=maimai, sub=b50, qq=<QQ号>            查自己的（需先完成 OAuth 绑定）
+qqbridge  action=maimai, sub=song, songId=11823        查某首歌的定数
+qqbridge  action=maimai, sub=search, query=ztn         模糊搜曲（支持简写）
+qqbridge  action=maimai, sub=bind, qq=<QQ号>           发起绑定，拿到授权链接
+qqbridge  action=maimai, sub=confirm, qq=<QQ号>, code=<确认码>   用确认码收尾绑定
+```
+
+`sub=b50` 默认会**出一张成绩图**（1080 宽 PNG），写在系统临时目录下并把路径交给你；
+不想要图就加 `image=false`。
+
+### 为什么不支持"按 QQ 号随便查"
+
+水鱼已经弃用开发者 token（`DIVINGFISH_TOKEN`）。原因是它**能按 QQ 号读取任意用户的成绩**，
+而那些用户从未对机器人授权、也无法撤销——用它做出来的"查分"，本质是一个无需同意就能
+窥探他人成绩的工具。所以本插件**只实现 OAuth**：
+
+| 环节 | 做法 |
+| --- | --- |
+| 机器人持有的凭据 | 只有你自己申请的应用 `clientId` / `clientSecret` |
+| QQ 号 | 只以 `sha256("<clientId>:<QQ号>")` 摘要外发，**号码本身不离开机器人** |
+| 用户令牌 | 只在**内存**缓存（5 分钟，提前 30 秒失效），**不落盘** |
+| 绑定 | 用户发 `bind` 拿到链接 → 本人点「同意授权」→ 把页面给的**一次性确认码**发回来 |
+| 撤销 | 用户随时可在 https://auth.diving-fish.com/apps 撤销 |
+| 未绑定用户 | 仍可用公开查询（按用户名） |
+
+那个确认码不是多余的手续：绑定链接谁都能转发，而确认码只出现在**点同意那个人的浏览器**里。
+少了它，别人可以拿你的 `clientId` 造一条链接发给受害者、骗对方授权从而绑上别人的账号。
+
+### 配置
+
+```yaml
+maimai:
+  clientId: '你的应用 ID'          # https://auth.diving-fish.com/apps 申请
+  clientSecret: '你的应用密钥'
+  proxy: false                     # 境外服务器可开
+```
+
+留空时插件不会静默失败，而是明确告诉你去申请（`sub=status` 会报告当前状态）。
+
+### 成绩图需要额外装一个包
+
+成绩图用 `@napi-rs/canvas`（N-API 预编译，**不需要**编译工具链）：
+
+```bash
+cd <插件目录> && npm install @napi-rs/canvas
+```
+
+没装也能用——查分、搜曲、开关全部照常，只是不出图，并且会告诉你装什么。
+这是刻意的：**画图是附加价值，不该让主功能一起挂掉**。
+
+### 关于曲绘
+
+原项目的成绩图带歌曲封面，那是 **SEGA 的游戏素材**，不能打包进 MIT 仓库，所以卡片用
+曲名推导出的稳定色条作视觉标识。曲库（1404 首）会缓存在 `qq-bridge/state/` 下 24 小时。
+
+### 曲库搜索
+
+搜索用子序列匹配，所以简写也能命中：`ztn` → `Zitronectar`。排序按匹配质量
+（完全相等 > 前缀 > 包含 > 艺人 > 子序列），查询短于 3 个字符时不走子序列兜底，避免误报。
 
 ---
 
@@ -333,13 +403,17 @@ loader 求值后所有带 volatile 的字段都变成了 `{}`，于是 `sectionO
 ## 测试
 
 ```bash
-npm test                                             # 插件侧：52 + 21 项
+npm test                                             # 插件侧全部 7 套：190 项
+npm run test:maimai                                   # 只跑舞萌查分的 4 套：99 项
 node ../qq-bridge/scripts/test-feature-command.mjs   # 桥接侧纯函数：28 项
 node ../qq-bridge/scripts/e2e-feature-command.mjs    # 端到端：10 项（需两端都在运行）
 ```
 
-CI 只跑不依赖 qq-bridge 的那两套（52 + 21 项），需要桥接在跑的两套留在本地跑——
+CI 只跑不依赖 qq-bridge 的那几套，需要桥接在跑的两套留在本地跑——
 写一个必然失败的 CI 不如没有 CI。
+
+舞萌查分的测试用**依赖注入**拦住了网络，所以不需要任何凭据就能跑；
+成绩图那套还会在"没装画图库"时自动改测降级路径（7 项），装了就测完整路径（21 项）。
 
 几条关键的安全与正确性断言：
 
@@ -350,6 +424,11 @@ CI 只跑不依赖 qq-bridge 的那两套（52 + 21 项），需要桥接在跑�
 | 任何字段都不得带 `volatile` | 会让 loader 把配置求值成 `{}`，保存即损坏 |
 | 端点无令牌时必须拒绝或不注册 | 它能放宽整个工具面 |
 | `#功能xyz` 不得被当成命令 | 误判会吞掉普通发言，表现为"机器人忽然不理人" |
+| 源码里不得出现 `developer-token` | 它能按 QQ 号读任意人成绩，用户无法撤销 |
+| 绑定请求必须带 `handoff=code`，且请求体不含明文 QQ 号 | 少了确认码就能被转发链接骗授权 |
+| 展示打码、`client_secret` 不得出现在任何输出里 | 输出会进模型上下文与 QQ 聊天记录 |
+| 出图路由必须挡掉 `../` 与非 `.png` | 否则变成任意文件读取 |
+| 出图失败不得让查分本身失败 | 图是附加价值 |
 
 ---
 

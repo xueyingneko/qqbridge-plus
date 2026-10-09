@@ -21,7 +21,8 @@
     "!lib/last-apply-config.json"
   ],
   "scripts": {
-    "test": "node test/plugin.test.mjs && node test/feature-command.test.mjs",
+    "test": "node test/plugin.test.mjs && node test/feature-command.test.mjs && node test/endpoint.test.mjs && node test/maimai-divingfish.test.mjs && node test/maimai-render.test.mjs && node test/maimai-music.test.mjs && node test/maimai-action.test.mjs",
+    "test:maimai": "node test/maimai-divingfish.test.mjs && node test/maimai-render.test.mjs && node test/maimai-music.test.mjs && node test/maimai-action.test.mjs",
     "install:dsh": "node scripts/install.mjs",
     "install:dsh:dry": "node scripts/install.mjs --dry-run"
   },
