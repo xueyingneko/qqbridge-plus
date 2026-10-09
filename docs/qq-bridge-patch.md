@@ -158,6 +158,69 @@
    `maimaiCommand` 的支持；
 2. **`normalizeCommandText`**（见下节）——这一处是真事故换来的。
 
+## 改动七：`cfg.maimaiCommand` 必须在 cfg 归一化段里显式构造 ⚠️
+
+**这是最容易漏、且漏了以后完全静默的一处。** 只打前面的改动而漏了这里，症状是：
+命令毫无反应、日志里一条线索都没有。
+
+### 为什么
+
+`bridge.js` 里的 `cfg` **不是** `config.json` 的原文，而是重新构造的对象。命令触发词
+逐段显式构造：
+
+```js
+  cfg.featureCommand = {
+    triggers: ['#功能', '#开关', '#features'],
+    ...(file.featureCommand ?? {})
+  };
+  cfg.helpCommand = {
+    triggers: ['#帮助', '#help', '#命令'],
+    ...(file.helpCommand ?? {})
+  };
+  // ↓ 这一段漏掉，整条查分链路就是死的
+  cfg.maimaiCommand = {
+    triggers: ['#查分', '#maimai'],
+    ...(file.maimaiCommand ?? {})
+  };
+```
+
+漏掉它时 `cfg.maimaiCommand` 永远是 `undefined`，于是消息处理里那句
+
+```js
+    if (cfg.maimaiCommand?.triggers?.length) { ... }
+```
+
+**静默跳过整个查分分支**——命令被当成普通发言丢给 AI，日志里**一条记录都没有**。
+
+真实踩过：`config.json` 里明明配好了 `maimaiCommand.triggers`，管理员却发了 8 条
+`#查分`（含 `#查分 b50`、`#查分 bind`）全部无人接手。因为进程启动时间晚于文件修改时间，
+排查时一度误判成"没加载新代码"——**那个方向是死路**，时间戳完全对得上。
+
+### 同时加的观测点
+
+在版本行之后加一行启动日志，把**实际加载到的**触发词打出来：
+
+```js
+  try {
+    const sections = ['balanceCommand', 'shutdownCommand', 'featureCommand', 'helpCommand', 'maimaiCommand'];
+    const loaded = sections.map((k) => {
+      const t = cfg[k]?.triggers;
+      return `${k.replace('Command', '')}=${Array.isArray(t) && t.length ? t.join(',') : '(未加载)'}`;
+    });
+    log(`命令触发词：${loaded.join(' | ')}`);
+  } catch (error) {
+    log(`⚠️ 命令触发词报告失败（不影响运行）：${error?.message ?? error}`);
+  }
+```
+
+输出形如：
+
+```
+命令触发词：balance=#余额,#balance | shutdown=#关机,#shutdown | feature=#功能,#开关 | help=#帮助,#help | maimai=#查分,#maimai
+```
+
+有了这一行，"配了却没生效"就不再需要猜：**只要 `maimai=(未加载)`，就是这一段漏了**。
+
 ## 改动六：归一化命令文本的首尾空白与零宽字符
 
 ### 为什么
