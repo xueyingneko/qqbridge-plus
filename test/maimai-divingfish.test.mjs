@@ -15,6 +15,7 @@ const TEST_QQ = 1234567890; // 一眼可辨的假号
 const TEST_QQ_STR = String(TEST_QQ);
 import {
   DEFAULTS,
+  DEFAULT_SCOPE,
   subjectRef,
   bindingLabel,
   tokenSubject,
@@ -132,11 +133,26 @@ await ok('缺凭据时明确判定"未配置"（不发必然失败的请求）',
   assert.equal(oauthConfigured(normalizeConfig({ clientId: 'a' })), false, '只有 id 不算配置好');
   assert.equal(oauthConfigured(normalizeConfig({ clientId: 'a', clientSecret: 'b' })), true);
 });
-await ok('默认地址与权限范围符合原项目契约', async () => {
+await ok('默认地址与权限范围符合契约，且覆盖实际需要的端点', async () => {
   assert.match(DEFAULTS.baseUrl, /^https:\/\/maimai\.diving-fish\.com\/api\/maimaidxprober$/);
   assert.match(DEFAULTS.authUrl, /^https:\/\/auth\.diving-fish\.com$/);
-  assert.equal(DEFAULTS.scope, 'prober.profile.read', '默认只读资料，不含写权限');
-  assert.ok(!/write/.test(DEFAULTS.scope), '默认权限里不得含 write');
+  // 权限必须覆盖代码真正调用的端点：
+  //   /query/player   → prober.profile.read（公开查询与汇总资料）
+  //   /player/records → prober.records.read（B50 的逐条成绩）
+  for (const need of ['profile', 'prober.profile.read', 'prober.records.read']) {
+    assert.ok(DEFAULTS.scope.split(/\s+/).includes(need), `scope 缺少 ${need}，对应端点会 403`);
+  }
+});
+await ok('默认权限不得含任何 write（插件没有写入路径，多申请只会吓退用户）', async () => {
+  assert.ok(!/write/i.test(DEFAULTS.scope), '默认权限里不得含 write');
+  // 也守住"不要顺手加 chunithm"——那是另一个游戏，与插件无关
+  assert.ok(!/chunithm/i.test(DEFAULTS.scope), '不该申请中二节奏的权限');
+});
+await ok('scope 是单一来源：配置默认值与客户端默认值必须一致', async () => {
+  // 曾经配置里写 prober.profile.read、实际申请了三项，两边不一致会导致换票时
+  // scope 对不上。这里锁住"同一份常量"。
+  assert.equal(DEFAULTS.scope, DEFAULT_SCOPE);
+  assert.equal(normalizeConfig({}).scope, DEFAULT_SCOPE, 'normalizeConfig 不该改写 scope');
 });
 await ok('proxy 开启时 baseUrl 走中转，authUrl 不受影响', async () => {
   const c = normalizeConfig({ proxy: true });
