@@ -52,6 +52,9 @@
   "devDependencies": {
     "@deepseek-ai/schemastery": "^3.18.1"
   },
+  "optionalDependencies": {
+    "@napi-rs/canvas": "^1.0.10"
+  },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
