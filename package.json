@@ -50,10 +50,7 @@
   "bugs": {
     "url": "https://github.com/xueyingneko/qqbridge-plus/issues"
   },
-  "devDependencies": {
-    "@deepseek-ai/schemastery": "^3.18.1"
-  },
-  "optionalDependencies": {
+  "dependencies": {
     "@napi-rs/canvas": "^1.0.10"
   },
   "dsh": {

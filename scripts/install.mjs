@@ -168,7 +168,7 @@ if (alreadyHere) {
 }
 
 // ── 2. 插件自身的依赖 ─────────────────────────────────────────────────────────
-step(2, '安装插件依赖（唯一一个是 @deepseek-ai/schemastery）');
+step(2, '安装插件依赖（@napi-rs/canvas——成绩图要用）');
 if (opts.noInstall) {
   warn('--no-install：跳过');
 } else if (opts.dryRun) {
@@ -181,6 +181,31 @@ if (opts.noInstall) {
   } else {
     const r = run(pm, ['install', '--no-audit', '--no-fund'], opts.dir);
     r.ok ? ok(`${pm} install 完成`) : warn(`${pm} install 失败：${r.out.split('\n').slice(-3).join(' / ')}`);
+
+    // 装完必须**实测能渲染**，而不是只看"命令返回 0"。
+    // 理由：@napi-rs/canvas 是原生模块（N-API 预编译），在少数平台/架构上可能装到却加载失败。
+    // 只报"install 成功"会让人以为出图可用，直到用户真的查分时才发现——那种失败很晚才暴露。
+    const probe = path.join(opts.dir, '.canvas-probe.mjs');
+    try {
+      fs.writeFileSync(probe, [
+        "import { createCanvas } from '@napi-rs/canvas';",
+        "const c = createCanvas(16, 16);",
+        "c.getContext('2d').fillRect(0, 0, 8, 8);",
+        "const b = c.toBuffer('image/png');",
+        "if (!b || b.length < 50) throw new Error('渲染输出异常');",
+        "console.log('ok:' + b.length);",
+      ].join('\n'), 'utf8');
+      const p = run('node', [probe], opts.dir);
+      if (p.ok && /ok:\d+/.test(p.out)) {
+        ok('成绩图可用（已实测渲染出一张 PNG）');
+      } else {
+        warn(`画图库装了但无法渲染（成绩图会不可用，查分与搜曲不受影响）：${p.out.split('\n').slice(-2).join(' / ')}`);
+      }
+    } catch (e) {
+      warn(`渲染自检失败（不影响查分）：${e?.message ?? e}`);
+    } finally {
+      try { fs.rmSync(probe, { force: true }); } catch { /* 清理失败不影响流程 */ }
+    }
   }
 }
 
