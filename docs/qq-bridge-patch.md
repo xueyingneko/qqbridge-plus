@@ -152,5 +152,53 @@
 | 4 | `actionReply`（新增） | 转发 `maimai` action |
 | 5 | `maimaiCommand` 分支 + 绑定类强制私聊 | QQ 命令入口 + **安全** |
 
-另有 `src/feature-command.mjs` 的一处：`parseMaimaiArgs`（把命令参数转成插件 action 参数）
-与 `matchAdminCommand` 里对 `maimaiCommand` 的支持。
+另有 `src/feature-command.mjs` 的两处：
+
+1. `parseMaimaiArgs`（把命令参数转成插件 action 参数）与 `matchAdminCommand` 里对
+   `maimaiCommand` 的支持；
+2. **`normalizeCommandText`**（见下节）——这一处是真事故换来的。
+
+## 改动六：归一化命令文本的首尾空白与零宽字符
+
+### 为什么
+
+中文输入法很容易在句首带出**全角空格**（`U+3000`）或零宽字符（`U+200B` / `U+FEFF`）。
+这类字符**肉眼看不出**，却会让 `#查分` 匹配失败——而失败是**完全静默的**：消息被当成
+普通发言丢给 AI，用户只会看到机器人答非所问，根本猜不到"我多打了个看不见的空格"。
+
+真实事故：管理员在私聊里发 `#查分 bind qq <号>`，句首带了个全角空格，命令始终没被接住。
+排查时一度误判成"桥接没加载新代码"——因为日志里连一条"命令被拒"都没有（匹配根本没触发，
+自然什么也不记录）。**这种静默失败比报错难查得多。**
+
+原来的实现只处理了"触发词**之后**的全角空格"（`content.startsWith(t + '\u3000')`），
+没处理触发词**之前**的。
+
+### 加什么
+
+在 `src/feature-command.mjs` 里新增并导出：
+
+```js
+/**
+ * 归一化命令文本：去掉首尾的空白与零宽字符。
+ * 只归一化**首尾**：中间的空白有语义（分隔触发词与参数），不能动。
+ */
+export function normalizeCommandText(text) {
+  return String(text ?? '')
+    .replace(/^[\s\u3000\u200b-\u200d\ufeff]+/, '')
+    .replace(/[\s\u3000\u200b-\u200d\ufeff]+$/, '');
+}
+```
+
+然后：
+
+- `matchAdminCommand` 的首行由 `const content = String(text ?? '');` 改为
+  `const content = normalizeCommandText(text);`
+- `parseMaimaiArgs` 里 `String(argText ?? '').trim().split(/\s+/)` 改为
+  `normalizeCommandText(argText).split(/[\s\u3000]+/)`——`.trim()` 不去全角空格，
+  于是 `bind　qq　123`（全角分隔）会被当成一个整体 token 而解析失败。
+
+### 刻意**不**做的模糊匹配
+
+全角井号 `＃` 与形近字（`査`）**不做**归一化。它们是真正不同的字符，模糊匹配会带来误判风险
+（例如普通发言里出现 `＃` 就被当命令）。测试里钉住了这一点。
+
