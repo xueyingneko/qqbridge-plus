@@ -12,8 +12,9 @@ English ｜ [中文](README.md)
 ## What you get
 
 Once installed you can just ask the AI "what's the bot's balance?" or "what state is it in?",
-instead of digging through logs. And the admin can send `#功能 balance off` in QQ to turn a query
-off — it takes effect immediately, no file editing, no restart.
+instead of digging through logs. Anyone in the group can also send `#查分` to look up a
+MaimaiDX score and get a B50 card with song artwork. And the admin can send `#功能 balance off`
+in QQ to turn a query off — it takes effect immediately, no file editing, no restart.
 
 Here is what you can look up:
 
@@ -25,6 +26,7 @@ Here is what you can look up:
 | Holiday table | whether the table still covers you; when a year is missing you can pull the State Council notice and see what it would parse to |
 | Greetings | which personas have a startup/shutdown line configured, and where those go |
 | Admin commands | triggers and permission rules for `#余额` `#关机` `#功能` `#帮助` |
+| MaimaiDX scores | `#查分` in QQ for a B50, rendered as an image with song artwork; independent of qq-bridge, and open to everyone |
 | Bridge config | the config itself, with tokens masked |
 
 ---
@@ -214,7 +216,9 @@ qq-bridge.
 
 ---
 
-## Usage in QQ (admin only)
+## Usage in QQ
+
+### Admin commands (admin only)
 
 ```
 #帮助                     list all admin commands (triggers rendered from current config)
@@ -230,11 +234,34 @@ qq-bridge.
 - Admin only (qq-bridge's `ownerQQ`). With no `ownerQQ` configured these commands are unusable
   for everyone.
 
+### Score lookup (everyone)
+
+```
+#查分                          is score lookup usable on this machine
+#查分 柚子                     just a username = public B50 lookup
+#查分 b50 柚子                 same, with the sub-command written out
+#查分 b50                      my own B50 (requires a completed binding first)
+#查分 b50 qq 12345678          a specific QQ (they must have bound first)
+#查分 song 11823               the chart constants for one song
+#查分 search ztn               fuzzy song search, abbreviations work
+#查分 bind                     start binding; the auth link arrives by DM
+#查分 confirm 123456           finish binding with the confirmation code
+```
+
+- **Not admin-only** — anyone can look up their own scores. "My own" requires a one-time binding,
+  and binding requires **you personally** to click "authorize" on the Diving-Fish page.
+- Triggers are configurable (`maimaiCommand.triggers`, defaults `#查分` / `#maimai`).
+- A leading ideographic space or zero-width character is stripped first — invisible, yet enough to
+  make `#查分` fail to match.
+- The link and confirmation code from `bind` / `confirm` go **only by DM**; the group at most sees
+  "sent to your DM". That is not needless caution: a link can be forwarded by anyone, while the
+  confirmation code only ever appears in the browser of whoever clicked authorize.
+
 ---
 
 ## What the AI can call
 
-One tool, `qqbridge`, with 9 actions:
+One tool, `qqbridge`, with 10 actions:
 
 | action | Purpose |
 | --- | --- |
@@ -246,25 +273,89 @@ One tool, `qqbridge`, with 9 actions:
 | `commands` | `#余额` `#关机` triggers and permission rules |
 | `config` | Bridge config summary (tokens redacted); `key="role.balanceAlarm"` for a subtree |
 | `features` | Feature toggles: view, or modify with `set`/`enabled`, or `reset` |
+| `maimai` | MaimaiDX score lookup (see the next section) |
 | `firstRun` | Re-read the first-run guidance |
 
 ---
 
-## The switches
+## MaimaiDX score lookup
 
-One boolean per feature, `false` means off, with `'*'` as a fallback. All on by default.
-
-Precedence:
+Talks to the [Diving-Fish prober](https://diving-fish.com). This part is **unrelated to qq-bridge** —
+it works even if the bridge is not installed.
 
 ```
-QQ / runtime override file  >  composition config  >  code default (all on)
+qqbridge  action=maimai, sub=status                    is lookup usable on this machine
+qqbridge  action=maimai, sub=b50, username=someone     public lookup (they must have made scores public)
+qqbridge  action=maimai, sub=b50, qq=<QQ number>       my own (requires a completed OAuth binding)
+qqbridge  action=maimai, sub=song, songId=11823        the constants for one song
+qqbridge  action=maimai, sub=search, query=ztn         fuzzy song search (abbreviations work)
+qqbridge  action=maimai, sub=bind, qq=<QQ number>      start binding, returns the auth link
+qqbridge  action=maimai, sub=confirm, qq=<QQ number>, code=<code>   finish binding
 ```
 
-In other words, what was changed in QQ beats what is written in the config. Overrides live in
-`qq-bridge/state/plugin-features.json`, written atomically (temp file plus rename) so another
-process can never read half a JSON. They survive a DSH restart, and `#功能 reset` clears them.
-A corrupt state file is treated as "no overrides" and the reason is recorded; it never stops the
-plugin from starting.
+`sub=b50` renders a **score image** (1080 px wide PNG) by default, writes it to the system temp
+directory and hands you the path; add `image=false` if you do not want the image.
+
+### Why there is no "look up any QQ number"
+
+Diving-Fish has retired the developer token (`DIVINGFISH_TOKEN`). The reason: it could **read any
+user's scores by QQ number**, and those users never authorized the bot and cannot revoke it — a
+"score lookup" built on it is really a tool for prying into other people's records without consent.
+So this plugin implements **OAuth only**:
+
+| Step | How it works |
+| --- | --- |
+| Credentials the bot holds | Only your own application's `clientId` / `clientSecret` |
+| QQ number | Sent out only as `sha256("<clientId>:<QQ number>")`; **the number itself never leaves the bot** |
+| User token | Cached **in memory only** (5 minutes, invalidated 30 s early), **never written to disk** |
+| Binding | User runs `bind` to get a link → clicks "authorize" personally → sends back the **one-time confirmation code** shown on that page |
+| Revoking | Users can revoke any time at https://auth.diving-fish.com/apps |
+| Unbound users | Can still use public lookup (by username) |
+
+The confirmation code is not red tape: a binding link can be forwarded by anyone, while the code
+only ever appears in the browser of whoever clicked authorize. Without it, someone could craft a
+link with your `clientId`, send it to a victim, and bind that victim's account to themselves.
+
+### Configuration
+
+```yaml
+maimai:
+  clientId: 'your application ID'      # apply at https://auth.diving-fish.com/apps
+  clientSecret: 'your application secret'
+  proxy: false                         # enable on servers outside mainland China
+```
+
+When applying, pick **"bot / tool"** as the integration type (device-code binding plus token
+exchange, no callback URL needed) — that is exactly this plugin's flow.
+Choose "run it yourself" as the deployment type (confidential client, uses `client_secret`).
+
+**Only three scopes need ticking** (all read-only):
+
+| Scope | Why it is needed |
+| --- | --- |
+| `profile` | basic account information |
+| `prober.profile.read` | Rating, name plate and similar summary data |
+| `prober.records.read` | **the per-chart records behind B50** (without it queries return 403) |
+
+**Do not tick any `write` scope** — this plugin has no write path at all. It would also push your
+application into manual review, which only slows you down. `chunithm.*` (Chunithm) is irrelevant here.
+
+When left empty the plugin does not fail silently; it tells you to go apply (`sub=status` reports
+the current state).
+
+### The score image needs `@napi-rs/canvas`
+
+**The installer installs it for you** (step 2), and then **actually renders a PNG** before
+reporting success — it does not just check "the command returned 0". The reason: it is a native
+module (N-API prebuilt) that can install yet fail to load on some platforms/architectures, and
+reporting only "install succeeded" would make you believe images work until you actually look up
+a score.
+
+### Song search
+
+Search uses subsequence matching, so abbreviations work too: `ztn` finds `Zitronectar`. Results are
+ranked by match quality (exact > prefix > substring > artist > subsequence), and queries shorter
+than 3 characters skip the subsequence fallback to avoid false hits.
 
 ### About song jackets
 
@@ -317,6 +408,35 @@ node scripts/sync-jackets.mjs --dir E:/qqbridge-plus/jackets
 A filename containing the **song id** is most reliable (`11576.png`); `by-title/<title>.png` also
 works (that is what the sync writes). Matching is **case-insensitive** — the database contains both
 `Trust` and `TRUST`, which are the same file on Windows but two files on Linux.
+
+## The switches
+
+One boolean per feature, `false` means off, with `'*'` as a fallback. All on by default.
+
+Precedence:
+
+```
+QQ / runtime override file  >  composition config  >  code default (all on)
+```
+
+In other words, what was changed in QQ beats what is written in the config. Overrides live in
+`qq-bridge/state/plugin-features.json`, written atomically (temp file plus rename) so another
+process can never read half a JSON. They survive a DSH restart, and `#功能 reset` clears them.
+A corrupt state file is treated as "no overrides" and the reason is recorded; it never stops the
+plugin from starting.
+
+Eight keys, all on by default:
+
+| Key | Capability |
+| --- | --- |
+| `status` | Overview |
+| `balance` | Balance and auto-shutdown |
+| `schedule` | Billing peak/off-peak and reasoning tier |
+| `holidays` | Holiday table |
+| `greeting` | Startup / shutdown greetings |
+| `commands` | Admin command status |
+| `config` | Bridge config summary |
+| `maimai` | MaimaiDX score lookup |
 
 ### What happens when a feature is off
 
