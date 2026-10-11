@@ -1,5 +1,18 @@
 # v1.0.0
 
+> ## ⚠️ 此版本已被取代（superseded）
+>
+> **请使用 [v1.1.1](https://github.com/xueyingneko/qqbridge-plus/releases/tag/v1.1.1)。**
+>
+> 本页保留作历史记录。这个版本的包里**不含**下列内容：
+>
+> - 舞萌DX 查分（`#查分`，含 OAuth 授权、成绩图）
+> - 成绩图的歌曲封面
+> - 绑定链接强制私聊、不泄漏本机路径等安全改进
+> - 三处"看着成功其实没生效"的修复（图片发不出、查自己的成绩读不到、同步器不归零）
+>
+> 保留本页只是为了让旧链接仍能看到当时发布了什么、以及各文件的校验值。
+
 首个正式版本。把 [qq-bridge](https://github.com/Derpyu520/qq-bridge) 的运维能力接进 DeepSeek Harness 的工具面。
 
 > 本代码由 AI 生成。非常感谢 [Derpyu520](https://github.com/Derpyu520) 开发了 qq-bridge —— 没有它这个插件没有任何意义。
