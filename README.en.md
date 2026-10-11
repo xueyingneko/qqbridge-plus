@@ -1,4 +1,4 @@
-# dsh-plugin-qqbridge-plus (QQbridge plus)
+# qqbridge-plus — MaimaiDX score lookup + chat extensions
 
 **A plugin built on [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) and [qq-bridge](https://github.com/Derpyu520/qq-bridge): primarily Diving-Fish (MaimaiDX) score lookup, plus a set of chat extensions.**
 

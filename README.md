@@ -1,4 +1,4 @@
-# dsh-plugin-qqbridge-plus（QQbridge plus）
+# qqbridge-plus —— 舞萌DX 查分 + 聊天拓展
 
 **基于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 与 [qq-bridge](https://github.com/Derpyu520/qq-bridge) 的插件：以水鱼（舞萌DX）查分为主，另附一些聊天拓展功能。**
 
