@@ -266,6 +266,58 @@ process can never read half a JSON. They survive a DSH restart, and `#功能 res
 A corrupt state file is treated as "no overrides" and the reason is recorded; it never stops the
 plugin from starting.
 
+### About song jackets
+
+The song artwork on score cards is **SEGA game material**, and this repository is MIT, so it
+**cannot be bundled here**. The approach is therefore: **you supply the assets, the plugin only
+reads them.** Without them there is no artwork and cards fall back to a stable colour strip
+derived from the song title (the same song always gets the same colour); nothing else changes.
+
+With assets in place you get jacket art on all 50 cards. Measured against a real B50: **49/50 hits**.
+
+#### How to get the jackets
+
+One command syncs them from a public CN song database:
+
+```
+#查分 sync            downloads into the directory set in maimai.jacketDir
+```
+
+```
+=== 曲绘同步 ===
+目录：E:/qqbridge-plus/jackets
+曲数据库共 1293 首，本地已有 0 张
+本轮下载 52 张（3.1 MB）
+还差 1241 张，再执行一次即可继续（增量，已下载的不会重下）。
+（GitHub 接口额度 6/60，每小时重置）
+```
+
+> **That song database declares no license** (no license means all rights reserved). So it is
+> neither bundled in this repository nor redistributed by the plugin — **your own machine performs
+> the download and the files land on your own disk**; the plugin is only a reader. Check the asset
+> licensing yourself if you intend to use or redistribute it commercially.
+> Source: <https://github.com/CrazyKidCN/maimaiDX-CN-songs-database>
+
+**Be patient**: GitHub's unauthenticated API allows only **60 requests per hour**, and the database
+has 1293 songs, so one run cannot finish. Sync is therefore **incremental and resumable** — just run
+it again; what is already downloaded is not re-fetched. To let it finish on its own, run the
+persistent process (it waits for the quota to reset instead of busy-looping):
+
+```bash
+node scripts/sync-jackets.mjs --dir E:/qqbridge-plus/jackets
+```
+
+> Two pitfalls found in testing, both recorded in code comments: (1) `raw.githubusercontent.com`
+> returns 502 on some networks, so the sync uses `api.github.com`; (2) Node may report
+> `UNABLE_TO_VERIFY_LEAF_SIGNATURE` for GitHub (the system store has a chain Node's bundled CAs do
+> not trust) — the sync **merges the system CA store automatically**, no CLI flag needed.
+
+#### Directory layout
+
+A filename containing the **song id** is most reliable (`11576.png`); `by-title/<title>.png` also
+works (that is what the sync writes). Matching is **case-insensitive** — the database contains both
+`Trust` and `TRUST`, which are the same file on Windows but two files on Linux.
+
 ### What happens when a feature is off
 
 - The action stays in the enum and answers with a clear sentence rather than being removed:
@@ -344,7 +396,7 @@ The plugin and qq-bridge are a cross-repo dependency. qq-bridge reports both ver
 
 ```
 [bridge] 版本：qq-bridge 0.2.0
-[bridge]       插件：dsh-plugin-qqbridge-plus 1.1.0
+[bridge]       插件：dsh-plugin-qqbridge-plus 1.1.1
 ```
 
 Each side takes its version solely from its own `package.json` `version`, with no second copy.
