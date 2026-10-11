@@ -1,7 +1,7 @@
 {
   "name": "dsh-plugin-qqbridge-plus",
   "version": "1.1.1",
-  "description": "QQbridge plus — DeepSeek Harness 插件：把 qq-bridge 的运维能力搬进原生工具面（余额与自动关机、推理档位按 DeepSeek 计费峰谷自动切换、节假日表覆盖检查与自动维护、开机/关机提示词、#余额/#关机 管理命令、#功能 开关、#帮助）。判定逻辑直接复用 qq-bridge 的纯模块，不重复实现。",
+  "description": "QQbridge plus — 基于 DeepSeek Harness 与 qq-bridge 的插件：以水鱼（舞萌DX）查分为主（QQ 内 #查分 查 B50、出带曲绘的成绩图，OAuth 授权、不限管理员、不依赖桥接），另附聊天拓展功能（余额与自动关机、推理档位按 DeepSeek 计费峰谷自动切换、节假日表覆盖检查与自动维护、开机/关机提示词、#余额/#关机 管理命令、#功能 开关、#帮助）。判定逻辑直接复用 qq-bridge 的纯模块，不重复实现。",
   "type": "module",
   "main": "lib/index.js",
   "exports": {

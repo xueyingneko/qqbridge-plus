@@ -1,8 +1,16 @@
 # dsh-plugin-qqbridge-plus（QQbridge plus）
 
+**基于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 与 [qq-bridge](https://github.com/Derpyu520/qq-bridge) 的插件：以水鱼（舞萌DX）查分为主，另附一些聊天拓展功能。**
+
+拆开说：
+
+- **水鱼查分** —— 在 QQ 里 `#查分` 查舞萌DX 成绩、出 B50 成绩图（带曲绘）。
+  走 OAuth 授权，不限管理员，也**不依赖桥接**：桥接没装好，查分照样能用。
+- **聊天拓展** —— 把 qq-bridge 的运维能力接进 AI 的工具面：余额与自动关机、
+  推理档位随计费峰谷自动切换、节假日表、开机/关机提示词、`#功能` 开关。
+
 > 本代码由 AI 生成。非常感谢 [Derpyu520](https://github.com/Derpyu520) 开发了
 > [qq-bridge](https://github.com/Derpyu520/qq-bridge)，没有它这个插件没有任何意义。
-> 它只是在 qq-bridge 旁边加的一个小配件。
 
 [English](README.en.md) ｜ 中文
 
